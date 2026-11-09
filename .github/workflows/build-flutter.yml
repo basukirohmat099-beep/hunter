@@ -81,13 +81,34 @@ jobs:
         id: detect
         run: |
           set -euo pipefail
+
+          # Hapus symlink plugin ephemeral yang bisa membingungkan `find`
+          find project_raw -type d -path "*/.plugin_symlinks" -exec rm -rf {} + 2>/dev/null || true
+
           PUBSPEC=$(find project_raw -type f -name pubspec.yaml \
-                    -not -path "*/build/*" -not -path "*/.dart_tool/*" | head -n 1)
+                    -not -path "*/build/*" \
+                    -not -path "*/.dart_tool/*" \
+                    -not -path "*/ephemeral/*" \
+                    -not -path "*/example/*" \
+                    -not -path "*/linux/*" \
+                    -not -path "*/windows/*" \
+                    -not -path "*/macos/*" \
+                    -not -path "*/ios/*" \
+                    -not -path "*/web/*" \
+                    | sort | head -n 1)
+
           GRADLEW=$(find project_raw -type f -name gradlew \
-                    -not -path "*/build/*" | head -n 1)
+                    -not -path "*/build/*" \
+                    -not -path "*/ephemeral/*" \
+                    -not -path "*/example/*" \
+                    | sort | head -n 1)
+
           SETTINGS=$(find project_raw -type f \
                     \( -name "settings.gradle" -o -name "settings.gradle.kts" \) \
-                    -not -path "*/build/*" | head -n 1)
+                    -not -path "*/build/*" \
+                    -not -path "*/ephemeral/*" \
+                    -not -path "*/example/*" \
+                    | sort | head -n 1)
 
           echo "pubspec : ${PUBSPEC:-<none>}"
           echo "gradlew : ${GRADLEW:-<none>}"
@@ -172,6 +193,7 @@ jobs:
         run: |
           set -euo pipefail
           flutter config --no-analytics >/dev/null 2>&1 || true
+          flutter clean
           flutter pub get
           BT="${{ github.event.inputs.build_type }}"
           [ -z "$BT" ] && BT=release
